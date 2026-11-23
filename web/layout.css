@@ -1002,3 +1002,4 @@
     flex-direction: column;
   }
 }
+.sidebar nav { align-content: start; }
