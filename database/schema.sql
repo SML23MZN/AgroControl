@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS ciclos_agricolas (
 ) ENGINE=InnoDB;
 CREATE TABLE IF NOT EXISTS actividades (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, finca_id BIGINT UNSIGNED NOT NULL, lote_id BIGINT UNSIGNED NULL,
- ciclo_id BIGINT UNSIGNED NULL, trabajador_id BIGINT UNSIGNED NULL, titulo VARCHAR(160) NOT NULL, descripcion TEXT,
+ ciclo_id BIGINT UNSIGNED NULL, trabajador_id BIGINT UNSIGNED NULL, hectareas_tarea DECIMAL(12,3) NULL CHECK (hectareas_tarea > 0), titulo VARCHAR(160) NOT NULL, descripcion TEXT,
  fecha_programada DATE NOT NULL, estado ENUM('pendiente','en_proceso','finalizada','cancelada') NOT NULL DEFAULT 'pendiente', observaciones TEXT,
  INDEX idx_actividades_finca_fecha(finca_id,fecha_programada),
  FOREIGN KEY(finca_id) REFERENCES fincas(id), FOREIGN KEY(lote_id) REFERENCES lotes(id), FOREIGN KEY(ciclo_id) REFERENCES ciclos_agricolas(id), FOREIGN KEY(trabajador_id) REFERENCES trabajadores(id)
