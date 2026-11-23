@@ -7,7 +7,7 @@ export default function PagoTrabajador({data, api, close, saved}) {
  const [modo,setModo]=useState('lote');
  const [referencia,setReferencia]=useState('');
  const [ha,setHa]=useState('');
- const [tarifa,setTarifa]=useState('');
+ const tarifa=data.fincas.find(row=>String(row.id)===finca)?.tarifa_hectarea??'';
  const [error,setError]=useState('');
  const [busy,setBusy]=useState(false);
  const mismaFinca=row=>String(row.finca_id)===finca;
@@ -30,7 +30,7 @@ export default function PagoTrabajador({data, api, close, saved}) {
  <label>Asignar pago por<select value={modo} onChange={e=>{setModo(e.target.value);setReferencia('');setHa('')}}><option value="lote">Lote</option><option value="tarea">Tarea asignada</option></select></label>
  <label>{modo==='lote'?'Lote trabajado':'Tarea del trabajador'}<select required value={referencia} onChange={e=>{setReferencia(e.target.value);setHa('')}}><option value="">Selecciona…</option>{opciones.map(row=><option key={row.id} value={row.id}>{row.nombre||row.titulo}</option>)}</select></label>
  <label>Hectáreas trabajadas<input required type="number" min="0.001" step="0.001" max={lote?.area_hectareas} value={ha} onChange={e=>setHa(e.target.value)}/></label>
- <label>Tarifa por hectárea (COP)<input required type="number" min="0.01" step="0.01" value={tarifa} onChange={e=>setTarifa(e.target.value)}/></label>
+ <label>Tarifa por hectárea (COP)<input readOnly value={tarifa} placeholder="Elige una finca"/></label>
  <label>Fecha del pago<input required name="fecha" type="date"/></label>
  <label>Total del pago<output>{total.toLocaleString('es-CO',{style:'currency',currency:'COP'})}</output></label>
  </div>{error&&<div className="error" role="alert">{error}</div>}<div className="dialog-footer"><button type="button" className="secondary" disabled={busy} onClick={close}>Cancelar</button><button className="primary" disabled={busy}>Registrar pago</button></div></form></div>

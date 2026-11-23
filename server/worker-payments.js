@@ -4,17 +4,23 @@ export function registerWorkerPayments(app, auth, db, farmIds) {
   try {
    if (!['administrador_general','administrador_finca','encargado_produccion'].includes(req.user.rol))
     return res.status(403).json({error:'Tu rol no puede registrar gastos.'});
-   const {finca,trabajador,modo,referencia,ha,tarifa,fecha}=req.body||{};
+   const {finca,trabajador,modo,referencia,ha,tarifa:tarifaMostrada,fecha}=req.body||{};
    const ids=[finca,trabajador,referencia].map(Number);
    const fechaISO=/^\d{4}-\d{2}-\d{2}$/.test(fecha) && new Date(fecha+'T00:00:00Z');
    if (!ids.every(id=>Number.isSafeInteger(id)&&id>0)||!['lote','tarea'].includes(modo)
-    ||!/^\d{1,9}(\.\d{1,3})?$/.test(ha)||!/^\d{1,10}(\.\d{1,2})?$/.test(tarifa)
-    ||Number(ha)<=0||Number(tarifa)<=0||!fechaISO||!Number.isFinite(+fechaISO)||fechaISO.toISOString().slice(0,10)!==fecha)
+    ||!/^\d{1,9}(\.\d{1,3})?$/.test(ha)
+    ||Number(ha)<=0||!fechaISO||!Number.isFinite(+fechaISO)||fechaISO.toISOString().slice(0,10)!==fecha)
     return res.status(400).json({error:'Revisa la fecha, las hectáreas, la tarifa y el trabajador.'});
    const permitidas=await farmIds(req.user);
    if(permitidas&&!permitidas.includes(ids[0]))return res.status(403).json({error:'No tienes acceso a esta finca.'});
    conn=await db.getConnection();
    await conn.beginTransaction();
+   const [[farm]]=await conn.execute('SELECT tarifa_hectarea FROM fincas WHERE id=? FOR SHARE',[ids[0]]);
+   if(!farm||Number(farm.tarifa_hectarea)!==Number(tarifaMostrada)){
+    await conn.rollback();
+    return res.status(409).json({error:'La tarifa de la finca cambió. Cierra y vuelve a abrir el formulario para confirmar el nuevo total.'});
+   }
+   const tarifa=farm.tarifa_hectarea;
    const [[persona]]=await conn.execute('SELECT nombre FROM trabajadores WHERE id=? AND finca_id=?',[ids[1],ids[0]]);
    const consulta=modo==='lote'
     ? 'SELECT id lote_id, nombre, area_hectareas, NULL ciclo_id FROM lotes WHERE id=? AND finca_id=?'
