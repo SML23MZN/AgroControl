@@ -1004,3 +1004,4 @@
 }
 .sidebar nav { align-content: start; }
 @media (pointer: fine) { .dialog-head { cursor: grab; user-select: none; } .dialog-head:active { cursor: grabbing; } .dialog-head button { cursor: pointer; } }
+.report-filters.list-filters { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr)); align-items:end; } .list-filters label,.list-filters select { min-width:0; max-width:100%; }
