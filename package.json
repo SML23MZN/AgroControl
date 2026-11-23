@@ -1,0 +1,21 @@
+{
+  "name": "agrocontrol",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Gestión y seguimiento de producción agrícola",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "concurrently \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "node --watch --env-file-if-exists=.env server/index.js",
+    "dev:web": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "start": "node --env-file-if-exists=.env server/index.js",
+    "setup": "node --env-file-if-exists=.env scripts/setup.js",
+    "seed:academico": "node --env-file-if-exists=.env scripts/seed-academico.js",
+    "test": "node --test",
+    "preview": "vite preview"
+  },
+  "dependencies": { "bcryptjs": "^2.4.3", "express": "^4.21.2", "mysql2": "^3.14.0" },
+  "devDependencies": { "@vitejs/plugin-react": "^4.3.4", "concurrently": "^9.1.2", "vite": "^6.0.7", "react": "^18.3.1", "react-dom": "^18.3.1" }
+}
