@@ -171,6 +171,8 @@ if(farmTable.length){
 if(farmTable.length){
  const [tables]=await db.query("SHOW TABLES LIKE 'actividades'");
  if(tables.length){
+  const [pagoColumn]=await db.query("SHOW COLUMNS FROM actividades LIKE 'gasto_pago_id'");
+  if(!pagoColumn.length){try{await db.query('ALTER TABLE actividades ADD gasto_pago_id BIGINT UNSIGNED NULL')}catch(e){if(e.code!=='ER_DUP_FIELDNAME')throw e;}}
   const [columns]=await db.query("SHOW COLUMNS FROM actividades LIKE 'hectareas_tarea'");
   if(!columns.length){
    try{await db.query("ALTER TABLE actividades ADD hectareas_tarea DECIMAL(12,3) NULL CHECK (hectareas_tarea > 0)");}
