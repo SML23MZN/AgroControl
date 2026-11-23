@@ -1,3 +1,4 @@
+import {tarifaLabor,pagoPrevisto} from '../shared/tarifas.js';
 import { registerWorkerPayments } from './worker-payments.js';
 import express from 'express';
 import crypto from 'node:crypto';
@@ -20,7 +21,7 @@ const resources = {
  trabajadores: { table:'trabajadores', fields:['finca_id','nombre','documento','telefono','correo','activo'], finca:'finca_id', select:'SELECT t.*,f.nombre AS finca FROM trabajadores t JOIN fincas f ON f.id=t.finca_id' },
  cultivos: { table:'cultivos', fields:['lote_id','nombre','variedad','descripcion','activo'], fincaJoin:'lotes', select:'SELECT c.*,l.nombre AS lote,f.nombre AS finca,l.finca_id FROM cultivos c JOIN lotes l ON l.id=c.lote_id JOIN fincas f ON f.id=l.finca_id' },
  ciclos: { table:'ciclos_agricolas', fields:['cultivo_id','fecha_inicio','fecha_fin','estado','notas'], fincaJoin:'ciclos', select:'SELECT ca.*,c.nombre AS cultivo,l.finca_id,f.nombre AS finca,l.nombre AS lote FROM ciclos_agricolas ca JOIN cultivos c ON c.id=ca.cultivo_id JOIN lotes l ON l.id=c.lote_id JOIN fincas f ON f.id=l.finca_id' },
- actividades: { table:'actividades', fields:['finca_id','lote_id','ciclo_id','trabajador_id','hectareas_tarea','titulo','descripcion','fecha_programada','estado','observaciones'], finca:'finca_id', select:'SELECT a.*,ROUND(a.hectareas_tarea*f.tarifa_hectarea,2) AS pago_previsto,f.nombre AS finca,l.nombre AS lote,t.nombre AS trabajador,cu.nombre AS cultivo FROM actividades a LEFT JOIN ciclos_agricolas ci ON ci.id=a.ciclo_id LEFT JOIN cultivos cu ON cu.id=ci.cultivo_id JOIN fincas f ON f.id=a.finca_id LEFT JOIN lotes l ON l.id=a.lote_id LEFT JOIN trabajadores t ON t.id=a.trabajador_id' },
+ actividades: { table:'actividades', fields:['finca_id','lote_id','ciclo_id','trabajador_id','hectareas_tarea','titulo','descripcion','fecha_programada','estado','observaciones'], finca:'finca_id', select:'SELECT a.*,f.tarifa_hectarea AS tarifa_base,f.nombre AS finca,l.nombre AS lote,t.nombre AS trabajador,cu.nombre AS cultivo FROM actividades a LEFT JOIN ciclos_agricolas ci ON ci.id=a.ciclo_id LEFT JOIN cultivos cu ON cu.id=ci.cultivo_id JOIN fincas f ON f.id=a.finca_id LEFT JOIN lotes l ON l.id=a.lote_id LEFT JOIN trabajadores t ON t.id=a.trabajador_id' },
  cosechas: { table:'cosechas', fields:['ciclo_id','fecha','cantidad','unidad','observaciones'], fincaJoin:'cosechas', select:'SELECT co.*,c.nombre AS cultivo,l.finca_id,f.nombre AS finca,l.nombre AS lote FROM cosechas co JOIN ciclos_agricolas ca ON ca.id=co.ciclo_id JOIN cultivos c ON c.id=ca.cultivo_id JOIN lotes l ON l.id=c.lote_id JOIN fincas f ON f.id=l.finca_id' },
  compradores: { table:'compradores', fields:['finca_id','nombre','identificacion','telefono','correo','direccion','activo'], finca:'finca_id', select:'SELECT b.*,f.nombre AS finca FROM compradores b JOIN fincas f ON f.id=b.finca_id' },
  ventas: { table:'ventas', fields:['cosecha_id','comprador_id','fecha','cantidad','unidad','precio_unitario','total','observaciones'], fincaJoin:'ventas', select:'SELECT v.*,c.nombre AS comprador,co.fecha AS fecha_cosecha,co.cantidad AS cantidad_cosecha,co.unidad AS unidad_cosecha,cu.nombre AS cultivo,l.finca_id,f.nombre AS finca FROM ventas v JOIN compradores c ON c.id=v.comprador_id JOIN cosechas co ON co.id=v.cosecha_id JOIN ciclos_agricolas ca ON ca.id=co.ciclo_id JOIN cultivos cu ON cu.id=ca.cultivo_id JOIN lotes l ON l.id=cu.lote_id JOIN fincas f ON f.id=l.finca_id' },
@@ -115,7 +116,12 @@ app.get('/api/:resource',auth,async(req,res,next)=>{try{const c=resources[req.pa
   const usersById=new Map(rows.map(user=>[user.id,user]));
   for(const user of rows){user.fincas=[];user.nombres_fincas=[];}
   for(const farm of assignments){const user=usersById.get(farm.usuario_id);user.fincas.push(farm.id);user.nombres_fincas.push(farm.nombre);}
- }res.json(rows);}catch(e){next(e);}});
+ }
+ if(req.params.resource==='actividades')for(const row of rows){
+  row.pago_previsto=row.hectareas_tarea==null?null:pagoPrevisto(row.hectareas_tarea,tarifaLabor(row.tarifa_base,row.titulo));
+  delete row.tarifa_base;
+ }
+ res.json(rows);}catch(e){next(e);}});
 registerWorkerPayments(app, auth, db, farmIds);
 app.use('/api/fincas', (req,res,next)=>{
  if (['POST','PUT'].includes(req.method) && Object.hasOwn(req.body || {},'tarifa_hectarea')) {

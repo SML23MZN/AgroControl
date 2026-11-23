@@ -1,3 +1,4 @@
+import {tarifaLabor,pagoPrevisto} from '../shared/tarifas.js';
 import React, {useState} from 'react';
 import DialogHeader from './DialogHeader.jsx';
 
@@ -7,14 +8,15 @@ export default function PagoTrabajador({data, api, close, saved}) {
  const [modo,setModo]=useState('lote');
  const [referencia,setReferencia]=useState('');
  const [ha,setHa]=useState('');
- const tarifa=data.fincas.find(row=>String(row.id)===finca)?.tarifa_hectarea??'';
+ const base=data.fincas.find(row=>String(row.id)===finca)?.tarifa_hectarea??'';
  const [error,setError]=useState('');
  const [busy,setBusy]=useState(false);
  const mismaFinca=row=>String(row.finca_id)===finca;
  const opciones=modo==='lote'?data.lotes.filter(mismaFinca):data.actividades.filter(row=>mismaFinca(row)&&String(row.trabajador_id)===trabajador);
  const ref=opciones.find(row=>String(row.id)===referencia);
  const lote=modo==='lote'?ref:data.lotes.find(row=>row.id===ref?.lote_id);
- const total=Number(ha)*Number(tarifa);
+ const tarifa=base && (modo==='lote'?base:ref?tarifaLabor(base,ref.titulo):'');
+ const total=pagoPrevisto(ha,tarifa);
  async function guardar(e){
   e.preventDefault();
   const fecha=new FormData(e.currentTarget).get('fecha');

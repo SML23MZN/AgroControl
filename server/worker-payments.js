@@ -1,3 +1,4 @@
+import {tarifaLabor} from '../shared/tarifas.js';
 export function registerWorkerPayments(app, auth, db, farmIds) {
  app.post('/api/pagos-trabajadores',auth,async(req,res,next)=>{
   let conn;
@@ -16,11 +17,7 @@ export function registerWorkerPayments(app, auth, db, farmIds) {
    conn=await db.getConnection();
    await conn.beginTransaction();
    const [[farm]]=await conn.execute('SELECT tarifa_hectarea FROM fincas WHERE id=? FOR SHARE',[ids[0]]);
-   if(!farm||Number(farm.tarifa_hectarea)!==Number(tarifaMostrada)){
-    await conn.rollback();
-    return res.status(409).json({error:'La tarifa de la finca cambió. Cierra y vuelve a abrir el formulario para confirmar el nuevo total.'});
-   }
-   const tarifa=farm.tarifa_hectarea;
+
    const [[persona]]=await conn.execute('SELECT nombre FROM trabajadores WHERE id=? AND finca_id=?',[ids[1],ids[0]]);
    const consulta=modo==='lote'
     ? 'SELECT id lote_id, nombre, area_hectareas, NULL ciclo_id FROM lotes WHERE id=? AND finca_id=?'
@@ -29,6 +26,11 @@ export function registerWorkerPayments(app, auth, db, farmIds) {
    if(!persona||!ref||(ref.lote_id&&(!ref.area_hectareas||Number(ha)>Number(ref.area_hectareas)))){
     await conn.rollback();
     return res.status(400).json({error:'Revisa la asignación y el área disponible del lote.'});
+   }
+   const tarifa=modo==='tarea'?tarifaLabor(farm?.tarifa_hectarea,ref.nombre):farm?.tarifa_hectarea;
+   if(!farm || Number(tarifa)!==Number(tarifaMostrada)){
+    await conn.rollback();
+    return res.status(409).json({error:'La tarifa cambió. Vuelve a abrir el formulario para confirmar el total actualizado.'});
    }
    const importe=(BigInt(String(ha).replace('.',''))*10n**BigInt(3-(String(ha).split('.')[1]||'').length)
     *BigInt(String(tarifa).replace('.',''))*10n**BigInt(2-(String(tarifa).split('.')[1]||'').length)+500n)/1000n;
