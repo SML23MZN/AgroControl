@@ -1003,3 +1003,4 @@
   }
 }
 .sidebar nav { align-content: start; }
+@media (pointer: fine) { .dialog-head { cursor: grab; user-select: none; } .dialog-head:active { cursor: grabbing; } .dialog-head button { cursor: pointer; } }
