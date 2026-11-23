@@ -11,7 +11,7 @@ const schema=fs.readFileSync(path.join(root,'../database/schema.sql'),'utf8').re
 await conn.query(schema);
 const rl=createInterface({input:process.stdin,output:process.stdout});
 try {
- const [rows]=await conn.query('SELECT id FROM agrocontrol.usuarios LIMIT 1');
+ const [rows]=await conn.query('SELECT id FROM usuarios LIMIT 1');
  if(rows.length){console.log('La base ya tiene usuarios. No se creó otra cuenta.');}
- else {const nombre=(await rl.question('Nombre del administrador general: ')).trim();const correo=(await rl.question('Correo para iniciar sesión: ')).trim().toLowerCase();const clave=await rl.question('Contraseña inicial (mínimo 10 caracteres): ');if(!nombre||!correo.includes('@')||clave.length<10)throw new Error('Completa los datos y usa una contraseña de al menos 10 caracteres.');const hash=await bcrypt.hash(clave,12);await conn.execute('INSERT INTO agrocontrol.usuarios(nombre,correo,clave_hash,rol) VALUES(?,?,?,?)',[nombre,correo,hash,'administrador_general']);console.log('Administrador creado. Inicia AgroControl con npm start.');}
+ else {const nombre=(await rl.question('Nombre del administrador general: ')).trim();const correo=(await rl.question('Correo para iniciar sesión: ')).trim().toLowerCase();const clave=await rl.question('Contraseña inicial (mínimo 10 caracteres): ');if(!nombre||!correo.includes('@')||clave.length<10)throw new Error('Completa los datos y usa una contraseña de al menos 10 caracteres.');const hash=await bcrypt.hash(clave,12);await conn.execute('INSERT INTO usuarios(nombre,correo,clave_hash,rol) VALUES(?,?,?,?)',[nombre,correo,hash,'administrador_general']);console.log('Administrador creado. Inicia AgroControl con npm start.');}
 } finally {rl.close();await conn.end();}
