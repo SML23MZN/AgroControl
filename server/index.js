@@ -114,15 +114,24 @@ app.get('/api/dashboard',auth,async(req,res,next)=>{try{
  res.json({fincas:f[0].n,lotes:l[0].n,actividades_pendientes:a[0].n,trabajadores:workers[0].n,ciclos_activos:cycles[0].n,cosechas:harvests[0].n,produccion:prod[0].cantidad,ingresos:income[0].valor,gastos:cost[0].valor,resultado:Number(income[0].valor)-Number(cost[0].valor),actividades_recientes:recent,produccion_por_cultivo:crops,por_finca:farms});
  }catch(e){next(e);}});
 app.get('/api/reportes',auth,async(req,res,next)=>{try{if(!['administrador_general','administrador_finca'].includes(req.user.rol))return res.status(403).json({error:'Tu rol no tiene permiso para consultar reportes.'});const ids=await farmIds(req.user);let sql=`SELECT f.id,f.nombre AS finca,COALESCE(p.produccion,0) AS produccion,COALESCE(v.ingresos,0) AS ingresos,COALESCE(g.gastos,0) AS gastos,COALESCE(v.ingresos,0)-COALESCE(g.gastos,0) AS resultado FROM fincas f LEFT JOIN (SELECT l.finca_id,SUM(co.cantidad) produccion FROM cosechas co JOIN ciclos_agricolas ca ON ca.id=co.ciclo_id JOIN cultivos c ON c.id=ca.cultivo_id JOIN lotes l ON l.id=c.lote_id GROUP BY l.finca_id) p ON p.finca_id=f.id LEFT JOIN (SELECT finca_id,SUM(valor) gastos FROM gastos GROUP BY finca_id) g ON g.finca_id=f.id LEFT JOIN (SELECT b.finca_id,SUM(v.total) ingresos FROM ventas v JOIN compradores b ON b.id=v.comprador_id GROUP BY b.finca_id) v ON v.finca_id=f.id WHERE f.activa=1`;const params=[];if(ids!==null){if(!ids.length)return res.json([]);sql+=' AND f.id IN (?)';params.push(ids);}const [rows]=await db.query(sql+' ORDER BY f.nombre',params);res.json(rows);}catch(e){next(e);}});
-app.get('/api/reportes/gastos',auth,async(req,res,next)=>{
+app.get(['/api/reportes/gastos','/api/reportes/tareas'],auth,async(req,res,next)=>{
  try{
   if(!['administrador_general','administrador_finca'].includes(req.user.rol))
    return res.status(403).json({error:'Tu rol no tiene permiso para consultar reportes.'});
   const ids=await farmIds(req.user);
   if(ids && !ids.length)return res.json([]);
+  const alcance=ids?' AND f.id IN (?)':'';
+  if(req.path.endsWith('/tareas')){
+   const [rows]=await db.query(resources.actividades.select+' WHERE f.activa=1'+alcance+' ORDER BY a.fecha_programada DESC,a.id DESC',ids?[ids]:[]);
+   rows.forEach(calcularPagoActividad);
+   return res.json(rows);
+  }
   const sql='SELECT g.id,g.fecha,g.categoria,g.descripcion,g.valor,g.observaciones,f.nombre finca,l.nombre lote FROM gastos g JOIN fincas f ON f.id=g.finca_id LEFT JOIN lotes l ON l.id=g.lote_id WHERE f.activa=1'
    +(ids?' AND f.id IN (?)':'')+' ORDER BY g.fecha DESC,g.id DESC';
   const [rows]=await db.query(sql,ids?[ids]:[]);
+  const porGasto=new Map(rows.map(g=>{g.tareas=[];return [g.id,g]}));
+  const [labores]=await db.query('SELECT a.gasto_pago_id,a.titulo,t.nombre trabajador FROM actividades a JOIN gastos g ON g.id=a.gasto_pago_id AND g.finca_id=a.finca_id JOIN fincas f ON f.id=g.finca_id LEFT JOIN trabajadores t ON t.id=a.trabajador_id WHERE f.activa=1'+alcance+' ORDER BY a.id',ids?[ids]:[]);
+  for(const labor of labores)porGasto.get(labor.gasto_pago_id)?.tareas.push(labor);
   res.json(rows);
  }catch(error){next(error)}
 });

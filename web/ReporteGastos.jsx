@@ -21,7 +21,7 @@ export default function ReporteGastos({api,labels}){
  if(!rows)return <p>Cargando gastos…</p>;
  const needle=search.trim().toLocaleLowerCase('es');
  const items=rows.filter(row=>matchesFilters('gastos',row,filters)&&
-  [row.descripcion,row.observaciones,row.finca,row.lote,labels[row.categoria]].some(value=>String(value??'').toLocaleLowerCase('es').includes(needle)));
+  [...(row.tareas||[]).flatMap(t=>[t.titulo,t.trabajador]),row.descripcion,row.observaciones,row.finca,row.lote,labels[row.categoria]].some(value=>String(value??'').toLocaleLowerCase('es').includes(needle)));
  const subtotales=new Map();
  let total=0;
  for(const row of items){
@@ -36,8 +36,8 @@ export default function ReporteGastos({api,labels}){
   <div className="toolbar"><div className="search"><input type="search" aria-label="Buscar gasto" placeholder="Buscar concepto, trabajador o tarea…" value={search} onChange={e=>setSearch(e.target.value)}/></div></div>
   <div className="report-result-summary"><div><strong>{items.length} {items.length===1?'gasto':'gastos'}</strong></div><div><small>Total de gastos filtrados</small><strong>{moneda.format(total/100)}</strong></div></div>
   {!!items.length&&<div className="panel"><h3>Gasto por categoría</h3><dl>{Array.from(subtotales).sort((a,b)=>b[1]-a[1]).map(([key,cents])=><div key={key} style={{display:'flex',justifyContent:'space-between'}}><dt>{labels[key]||key}</dt><dd>{moneda.format(cents/100)}</dd></div>)}</dl></div>}
-  <div className="table-wrap"><table><thead><tr>{['Fecha','Finca','Lote','Categoría','Concepto','Valor (COP)','Detalle'].map(title=><th key={title}>{title}</th>)}</tr></thead><tbody>{items.map(g=><tr key={g.id}>
-   <td>{g.fecha}</td><td>{g.finca}</td><td>{g.lote||'Sin lote'}</td><td>{labels[g.categoria]||g.categoria}</td><td>{g.descripcion}</td><td>{moneda.format(g.valor)}</td>
+  <div className="table-wrap"><table><thead><tr>{['Fecha','Finca','Lote','Categoría','Concepto y tareas','Valor (COP)','Detalle'].map(title=><th key={title}>{title}</th>)}</tr></thead><tbody>{items.map(g=><tr key={g.id}>
+   <td>{g.fecha}</td><td>{g.finca}</td><td>{g.lote||'Sin lote'}</td><td>{labels[g.categoria]||g.categoria}</td><td><strong>{g.descripcion}</strong>{g.tareas?.map((t,i)=><small className="report-location" key={i}>{t.titulo} · {t.trabajador||'Sin asignar'}</small>)}</td><td>{moneda.format(g.valor)}</td>
    <td>{g.observaciones?<details><summary>Ver detalle</summary><p style={{whiteSpace:'pre-wrap',minWidth:'18rem'}}>{g.observaciones}</p></details>:'—'}</td>
   </tr>)}</tbody></table>{!items.length&&<p className="empty">No hay gastos que coincidan con esta consulta.</p>}</div>
  </section>;
